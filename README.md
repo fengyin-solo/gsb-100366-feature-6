@@ -67,5 +67,33 @@ npm run build
   `frontend/src/api/local-service.ts`。
 - 字段、状态、动作与流转目标集中在 `frontend/src/data/modules.ts`；示例数据在
   `frontend/src/data/seed.ts`。
-- 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断。
+- 状态流转只允许在 `local-service.ts`（扑火队伍委托给 `fireteam-ops.ts`）里改，页面组件不做业务判断。
 - 想回到初始数据：清掉浏览器里 `forest-fire-patrol:entries` 这一项，或调用 `resetModule(模块)`。
+
+## 扑火队伍出动与回撤（受控操作）
+
+实现在 `frontend/src/api/fireteam-ops.ts`，`local-service.ts` 对 `fireteam` 模块委托过去，
+其余模块仍走通用流转。规则：
+
+- 状态机：`下达出动` 仅对**在营待命**队伍生效；`转入休整` 仅对**扑救中**队伍生效；
+  `撤回队伍` 仅对在途（已出动/扑救中/休整中）队伍生效；**已撤回**是终态，不能重新进入出动。
+- 权限：以页面上的「当前操作林场」为准。本林场队伍可直接出动；**跨林场调度**必须登记
+  临时指挥权，队伍的所属林场与集结半径保持原归属不变。撤回只允许所属林场或临时指挥单位，
+  越权撤回其他单位队伍一律拒绝。
+- 联动回写：每次出动生成唯一出动批次号，同时把关联火情报告标记为「待核查」联动提醒
+  （扑救情况追加联动记录，报告原状态不变），并把领用装备在台账中回写为「已领用」。
+  指定报告编号 / 装备编号时先校验后落库，任一项不通过整笔出动不生效。
+- 幂等：出动指令有处理中锁与状态前置校验，并发或重复提交只有第一笔生效，
+  后续提交被拒绝且不重复回写。
+- 兼容：老队伍缺队长姓名时按所属林场兜底显示「XX林场队部（队长待补录）」；
+  历史队伍记录的所属林场不会被任何操作改写。
+
+冒烟验证（无需浏览器，直接跑受控逻辑）：
+
+```bash
+cd frontend
+npx tsc -p scripts/tsconfig.smoke.json \
+  && sed -i 's|@/data/|../data/|g; s|@/api/|../api/|g' /tmp/smoke-out/src/api/*.js \
+  && sed -i 's|@/data/|../src/data/|g; s|@/api/|../src/api/|g' /tmp/smoke-out/scripts/*.js \
+  && node /tmp/smoke-out/scripts/smoke-fireteam.js
+```

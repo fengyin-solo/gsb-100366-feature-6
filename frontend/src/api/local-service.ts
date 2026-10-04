@@ -1,6 +1,16 @@
+import { runFireteamAction } from '@/api/fireteam-ops'
 import { MODULE_BY_KEY } from '@/data/modules'
 import { allRows, listRows, resetRows, saveRows } from '@/data/local-store'
-import type { ActionResult, EntryRow, ModuleMeta, OverviewResult, PageResult } from '@/data/types'
+import type {
+  ActionResult,
+  EntryRow,
+  FireteamActionContext,
+  ModuleMeta,
+  OverviewResult,
+  PageResult,
+} from '@/data/types'
+
+export { captainLabel } from '@/api/fireteam-ops'
 
 // 会写进数据的「往回走」动作：命中就把这条记录标成异常态，看板上能一眼看出来。
 const NEGATIVE_ACTIONS = ['撤销', '作废', '拒绝', '驳回', '停用', '忽略', '下线', '回滚']
@@ -28,7 +38,16 @@ export function listEntries(key: string, filters: Record<string, string> = {}): 
   return { items: matched, total: matched.length, page: 1, size: matched.length }
 }
 
-export function runAction(key: string, id: number, action: string): ActionResult {
+export function runAction(
+  key: string,
+  id: number,
+  action: string,
+  context: FireteamActionContext = {},
+): ActionResult {
+  // 扑火队伍的出动/休整/撤回是受控操作，走专门实现；其余模块保持通用流转。
+  if (key === 'fireteam') {
+    return runFireteamAction(id, action, context)
+  }
   const meta = moduleMeta(key)
   const target = meta.actionTargets[action]
   if (!target) {

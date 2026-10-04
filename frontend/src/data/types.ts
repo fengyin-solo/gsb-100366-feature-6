@@ -32,6 +32,14 @@ export type ActionResult = {
   message: string
 }
 
+// 扑火队伍受控操作的调度参数：由页面收集，服务层据此做权限与联动回写。
+export type FireteamActionContext = {
+  operatorFarm?: string
+  reportNo?: string
+  equipmentNos?: string[]
+  commandFarm?: string
+}
+
 export type OverviewResult = {
   cards: { label: string; value: number }[]
   modules: { name: string; created: number; pending: number; abnormal: number }[]

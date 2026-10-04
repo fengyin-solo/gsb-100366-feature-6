@@ -11,7 +11,7 @@
     <main class="app-main">
       <header class="app-head">
         <span class="head-desc">面向森林火险监测、巡护任务调度、防火设施维护与应急响应指挥的林区防火管理平台。</span>
-        <span class="head-user">当前值班：{{ store.operator }} · {{ store.shiftLabel }}</span>
+        <span class="head-user">当前值班：{{ store.operator }} · {{ store.shiftLabel }} · 操作林场：{{ store.farm }}</span>
       </header>
       <RouterView />
     </main>

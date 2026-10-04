@@ -24,6 +24,12 @@
       </span>
     </p>
 
+    <p class="rule-hint">
+      出动与回撤受控：仅所属林场的在营待命队伍可下达出动；扑救中才能转休整；已撤回不能重新进入出动；
+      跨林场调度须登记临时指挥权（原所属林场与集结半径保留）；撤回仅限所属林场或临时指挥单位。
+      每次出动会联动回写火情报告关联核查提醒与消防装备领用台账，重复提交只生效一次。
+    </p>
+
     <form class="filter-bar" @submit.prevent="reload">
       <label v-for="field in filterFields" :key="field" class="filter-item">
         <span>{{ field }}</span>
@@ -33,18 +39,43 @@
       <button class="btn ghost" type="button" @click="resetFilters">重置条件</button>
     </form>
 
+    <div class="filter-bar dispatch-bar">
+      <label class="filter-item">
+        <span>当前操作林场</span>
+        <input v-model="farm" placeholder="出动/撤回的权限判断依据" />
+      </label>
+      <label class="filter-item">
+        <span>关联报告编号</span>
+        <input v-model="dispatchForm.reportNo" placeholder="选填，缺省关联最新已确认火情" />
+      </label>
+      <label class="filter-item">
+        <span>领用装备编号</span>
+        <input v-model="dispatchForm.equipmentNos" placeholder="选填，逗号分隔；缺省按所属林场划拨" />
+      </label>
+      <label class="filter-item">
+        <span>临时指挥权</span>
+        <input v-model="dispatchForm.commandFarm" placeholder="跨林场调度时必填" />
+      </label>
+    </div>
+
     <table class="data-table">
       <thead>
         <tr>
           <th v-for="column in columns" :key="column">{{ column }}</th>
           <th>当前状态</th>
+          <th>临时指挥权</th>
+          <th>出动批次号</th>
           <th>可执行动作</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="row in rows" :key="String(row.id)">
-          <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
+          <td v-for="column in columns" :key="column">
+            {{ column === '队长姓名' ? captainLabel(row) : (row[column] ?? '—') }}
+          </td>
           <td>{{ row.status }}</td>
+          <td>{{ row['临时指挥权'] ?? '—' }}</td>
+          <td>{{ row['出动批次号'] ?? '—' }}</td>
           <td class="row-actions">
             <button
               v-for="action in actions"
@@ -58,28 +89,31 @@
           </td>
         </tr>
         <tr v-if="!rows.length">
-          <td :colspan="columns.length + 2" class="empty-state">暂无扑火队伍数据，可先登记扑火队伍</td>
+          <td :colspan="columns.length + 4" class="empty-state">暂无扑火队伍数据，可先登记扑火队伍</td>
         </tr>
       </tbody>
     </table>
 
     <footer class="page-foot">
       <span>共 {{ total }} 条扑火队伍记录</span>
+      <span v-if="noticeMessage" class="notice-text">{{ noticeMessage }}</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 import {
+  captainLabel,
   downloadEntries,
   listEntries,
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
+import { useSessionStore } from '@/stores/session'
 
 const meta = moduleMeta('fireteam')
 const columns = ["队伍编号", "队伍名称", "所属林场", "队长姓名", "队员人数", "集结半径", "值班状态", "出动状态"]
@@ -87,10 +121,22 @@ const actions = ["下达出动", "转入休整", "撤回队伍"]
 const statuses = ["在营待命", "已出动", "扑救中", "已撤回", "休整中"]
 const stats = [{"label": "队伍总数", "value": 0}, {"label": "待命队伍", "value": 0}, {"label": "出动队伍", "value": 0}]
 
+const session = useSessionStore()
+const farm = computed({
+  get: () => session.farm,
+  set: (value: string) => session.setFarm(value),
+})
+
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
+const noticeMessage = ref('')
 const filters = ref<Record<string, string>>({})
+const dispatchForm = reactive({
+  reportNo: '',
+  equipmentNos: '',
+  commandFarm: '',
+})
 const filterFields = columns.slice(0, 3)
 const statusSummary = computed(() =>
   statuses.map((status: string) => ({
@@ -114,11 +160,21 @@ function openCreate() {
 
 function runAction(action: string, row: EntryRow) {
   errorMessage.value = ''
-  const result = applyAction(meta.key, Number(row.id), action)
+  noticeMessage.value = ''
+  const result = applyAction(meta.key, Number(row.id), action, {
+    operatorFarm: farm.value.trim(),
+    reportNo: dispatchForm.reportNo.trim() || undefined,
+    equipmentNos: dispatchForm.equipmentNos
+      .split(/[,，\s]+/)
+      .map((item) => item.trim())
+      .filter(Boolean),
+    commandFarm: dispatchForm.commandFarm.trim() || undefined,
+  })
   if (!result.ok) {
     errorMessage.value = result.message
     return
   }
+  noticeMessage.value = result.message
   reload()
 }
 
