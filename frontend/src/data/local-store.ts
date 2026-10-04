@@ -40,12 +40,19 @@ export function listRows(key: string): EntryRow[] {
   return allRows()[key] ?? []
 }
 
-export function saveRows(key: string, rows: EntryRow[]): void {
-  const next = { ...allRows(), [key]: rows }
+function persist(next: Record<string, EntryRow[]>): void {
   cache = next
   if (typeof window !== 'undefined' && window.localStorage) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
   }
+}
+
+export function saveRows(key: string, rows: EntryRow[]): void {
+  persist({ ...allRows(), [key]: rows })
+}
+
+export function saveRowsBatch(changes: Record<string, EntryRow[]>): void {
+  persist({ ...allRows(), ...changes })
 }
 
 export function resetRows(key: string): EntryRow[] {

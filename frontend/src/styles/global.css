@@ -14,7 +14,9 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .nav-item { color: #cbd5e1; text-decoration: none; padding: 6px 8px; border-radius: 6px; font-size: 13px; }
 .nav-item.router-link-active { background: #1f6feb; color: #fff; }
 .app-main { flex: 1; padding: 16px 20px; }
-.app-head { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; }
+.app-head { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 13px; }
+.forest-switch { display: inline-flex; align-items: center; gap: 4px; margin: 0 6px; }
+.forest-switch select { border: 1px solid var(--border); border-radius: 4px; padding: 2px 4px; }
 .page-head { display: flex; justify-content: space-between; align-items: flex-start; margin: 12px 0; }
 .page-desc { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
 .stat-row { display: flex; gap: 12px; margin-bottom: 12px; }

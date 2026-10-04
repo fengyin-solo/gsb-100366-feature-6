@@ -82,8 +82,8 @@ import {
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('firereport')
-const columns = ["报告编号", "起火地点", "起火时间", "火势等级", "过火面积", "扑救情况", "报告人", "报告状态"]
-const actions = ["核实火情", "出动扑救", "确认误报"]
+const columns = meta.fields
+const actions = ["核实火情", "确认误报"]
 const statuses = ["待核实", "已确认", "已出警", "已扑灭", "误报"]
 const stats = [{"label": "今日报告数", "value": 0}, {"label": "已确认火情", "value": 0}, {"label": "扑救中火情", "value": 0}]
 
